@@ -1,0 +1,3 @@
+   * Admin: Email: admin@forum.com | Password: password
+   * Moderator: Email: mod@forum.com | Password: password
+   * User: Email: user@forum.com | Password: password
