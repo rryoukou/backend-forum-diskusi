@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\ModerationLog;
 use App\Models\Report;
 use App\Models\User;
+use App\Models\Post;
+use App\Models\Comment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -31,7 +33,16 @@ class ModerationController extends Controller
     public function reports(Request $request)
     {
         $status = $request->get('status', 'pending');
-        $reports = Report::with(['reporter:id,username', 'resolver:id,username'])
+        $reports = Report::with([
+            'reporter:id,username',
+            'resolver:id,username',
+            'target' => function ($morphTo) {
+                $morphTo->morphWith([
+                    Post::class => ['user:id,username,is_banned'],
+                    Comment::class => ['user:id,username,is_banned'],
+                ]);
+            }
+        ])
             ->where('status', $status)
             ->latest('id')
             ->paginate(20);

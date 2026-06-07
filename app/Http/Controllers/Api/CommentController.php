@@ -10,6 +10,7 @@ use App\Services\NotificationService;
 use App\Services\ReputationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 use OpenApi\Attributes as OA;
 
@@ -207,8 +208,21 @@ class CommentController extends Controller
             return response()->json(['message' => 'Comment not found'], 404);
         }
 
-        if ($comment->user_id !== auth()->id()) {
+        $user = auth()->user();
+
+        if ($comment->user_id !== $user->id && ! $user->isModerator()) {
             return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Jika dihapus oleh moderator/admin (bukan pemilik), catat di log moderasi
+        if ($comment->user_id !== $user->id) {
+            \App\Models\ModerationLog::create([
+                'moderator_id' => $user->id,
+                'target_user_id' => $comment->user_id,
+                'action_type' => 'delete_comment',
+                'reason' => request('reason', 'Pelanggaran aturan komunitas'),
+                'notes' => 'Comment ID: '.$comment->id.' | Content: '.Str::limit($comment->body, 100),
+            ]);
         }
 
         $comment->delete();

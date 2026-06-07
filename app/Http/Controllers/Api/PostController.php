@@ -22,7 +22,6 @@ class PostController extends Controller
     #[OA\Get(
         path: "/posts",
         summary: "Display a listing of posts",
-...
         responses: [
             new OA\Response(response: 200, description: "List of posts", content: new OA\JsonContent(type: "object"))
         ]
@@ -72,7 +71,6 @@ class PostController extends Controller
      */
     #[OA\Post(
         path: "/posts",
-...
         responses: [
             new OA\Response(response: 201, description: "Post created successfully", content: new OA\JsonContent(type: "object")),
             new OA\Response(response: 422, description: "Validation error"),
@@ -143,7 +141,6 @@ class PostController extends Controller
      */
     #[OA\Get(
         path: "/posts/{id}",
-...
         responses: [
             new OA\Response(response: 200, description: "Post details", content: new OA\JsonContent(type: "object")),
             new OA\Response(response: 404, description: "Post not found")
@@ -170,7 +167,6 @@ class PostController extends Controller
      */
     #[OA\Put(
         path: "/posts/{id}",
-...
         responses: [
             new OA\Response(response: 200, description: "Post updated successfully", content: new OA\JsonContent(type: "object")),
             new OA\Response(response: 403, description: "Unauthorized"),
@@ -252,7 +248,6 @@ class PostController extends Controller
      */
     #[OA\Delete(
         path: "/posts/{id}",
-...
         responses: [
             new OA\Response(response: 200, description: "Post deleted successfully"),
             new OA\Response(response: 403, description: "Unauthorized"),
@@ -267,9 +262,22 @@ class PostController extends Controller
             return response()->json(['message' => 'Post not found'], 404);
         }
 
-        // Cek kepemilikan
-        if ($post->user_id !== auth()->id()) {
+        $user = auth()->user();
+
+        // Cek kepemilikan atau role moderator/admin
+        if ($post->user_id !== $user->id && ! $user->isModerator()) {
             return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Jika dihapus oleh moderator/admin (bukan pemilik), catat di log moderasi
+        if ($post->user_id !== $user->id) {
+            \App\Models\ModerationLog::create([
+                'moderator_id' => $user->id,
+                'target_user_id' => $post->user_id,
+                'action_type' => 'delete_post',
+                'reason' => request('reason', 'Pelanggaran aturan komunitas'),
+                'notes' => 'Post ID: '.$post->id.' | Title: '.$post->title,
+            ]);
         }
 
         $post->delete();
