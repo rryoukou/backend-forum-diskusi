@@ -81,3 +81,22 @@ test('user can get unread notification count', function () {
     $response->assertStatus(200)
         ->assertJsonPath('unread_count', 1);
 });
+
+test('user can delete a notification', function () {
+    $user = User::create([
+        'username' => 'notified',
+        'email' => 'notified@example.com',
+        'password_hash' => bcrypt('password'),
+    ]);
+
+    $notification = Notification::create(['user_id' => $user->id, 'type' => 'upvote', 'is_read' => false]);
+
+    $response = $this->actingAs($user)
+        ->deleteJson("/api/notifications/{$notification->id}");
+
+    $response->assertStatus(200);
+
+    $this->assertDatabaseMissing('notifications', [
+        'id' => $notification->id,
+    ]);
+});

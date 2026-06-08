@@ -13,6 +13,7 @@ test('user can create a post', function () {
         'username' => 'testuser',
         'email' => 'test@example.com',
         'password_hash' => bcrypt('password'),
+        'reputation_points' => 10,
     ]);
 
     $category = Category::create([
@@ -154,4 +155,15 @@ test('can get post edit history', function () {
 
     $response = $this->getJson("/api/posts/{$post->id}/history");
     $response->assertStatus(200)->assertJsonCount(1);
+});
+
+test('guest can see a single post', function () {
+    $user = User::create(['username' => 'u', 'email' => 'u@e.c', 'password_hash' => 'p']);
+    $cat = Category::create(['name' => 'C', 'slug' => 'c']);
+    $post = Post::create(['user_id' => $user->id, 'category_id' => $cat->id, 'title' => 'Single Post', 'body' => 'Body']);
+
+    $response = $this->getJson("/api/posts/{$post->id}");
+
+    $response->assertStatus(200)
+        ->assertJsonPath('title', 'Single Post');
 });

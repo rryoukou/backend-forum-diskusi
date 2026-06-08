@@ -75,3 +75,26 @@ test('guest can see leaderboard', function () {
     $response->assertStatus(200)
         ->assertJsonPath('0.username', 'topuser');
 });
+
+test('guest can see user posts', function () {
+    $user = User::create([
+        'username' => 'postowner',
+        'email' => 'owner@example.com',
+        'password_hash' => bcrypt('password'),
+    ]);
+
+    $category = \App\Models\Category::create(['name' => 'General', 'slug' => 'general']);
+    
+    \App\Models\Post::create([
+        'user_id' => $user->id,
+        'category_id' => $category->id,
+        'title' => 'Post by Owner',
+        'body' => 'Body',
+    ]);
+
+    $response = $this->getJson("/api/profiles/postowner/posts");
+
+    $response->assertStatus(200)
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.title', 'Post by Owner');
+});

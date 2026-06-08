@@ -78,3 +78,21 @@ test('authenticated user can get their profile', function () {
     $response->assertStatus(200)
         ->assertJson(['username' => 'testuser']);
 });
+
+test('authenticated user can logout', function () {
+    $user = User::create([
+        'username' => 'testuser',
+        'email' => 'test@example.com',
+        'password_hash' => Hash::make('password123'),
+    ]);
+
+    $token = $user->createToken('test-token')->plainTextToken;
+
+    $response = $this->withHeader('Authorization', "Bearer $token")
+        ->postJson('/api/logout');
+
+    $response->assertStatus(200)
+        ->assertJson(['message' => 'Logged out successfully']);
+
+    $this->assertCount(0, $user->tokens);
+});

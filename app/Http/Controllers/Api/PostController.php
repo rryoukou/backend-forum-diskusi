@@ -79,6 +79,17 @@ class PostController extends Controller
     )]
     public function store(Request $request)
     {
+        $user = auth()->user();
+
+        // Check if user has enough reputation points to create a post
+        // Moderators and Admins are exempt from this requirement
+        $minPoints = 10;
+        if ($user->reputation_points < $minPoints && ! $user->isModerator()) {
+            return response()->json([
+                'message' => "You need at least {$minPoints} reputation points to create a post."
+            ], 403);
+        }
+
         // Validasi input
         $validator = Validator::make($request->all(), [
             'category_id' => 'required|exists:categories,id',
