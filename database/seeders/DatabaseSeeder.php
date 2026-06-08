@@ -69,6 +69,40 @@ class DatabaseSeeder extends Seeder
             \App\Models\Comment::factory(rand(2, 5))->recycle($allUsers)->create([
                 'post_id' => $post->id,
             ]);
+
+            // Add some votes to the post
+            foreach ($allUsers->random(rand(2, 5)) as $voter) {
+                if ($voter->id !== $post->user_id) {
+                    \App\Models\Vote::create([
+                        'user_id' => $voter->id,
+                        'target_id' => $post->id,
+                        'target_type' => 'post',
+                        'vote_type' => rand(0, 1) ? 'upvote' : 'downvote',
+                    ]);
+                }
+            }
         });
+
+        // Add some bookmarks
+        foreach ($allUsers as $u) {
+            $randomPosts = Post::inRandomOrder()->limit(rand(1, 3))->get();
+            foreach ($randomPosts as $rp) {
+                \App\Models\Bookmark::create([
+                    'user_id' => $u->id,
+                    'post_id' => $rp->id,
+                ]);
+            }
+        }
+
+        // Add some notifications
+        foreach ($allUsers as $u) {
+            \App\Services\NotificationService::send($u->id, 'welcome', null, 'system', null);
+        }
+
+        // Call the additional seeders
+        $this->call([
+            ModerationSeeder::class,
+            SocialSeeder::class,
+        ]);
     }
 }
