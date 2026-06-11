@@ -7,6 +7,7 @@ use App\Models\Like;
 use App\Services\NotificationService;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 
 use OpenApi\Attributes as OA;
@@ -67,6 +68,8 @@ class LikeController extends Controller
         if ($existingLike) {
             $existingLike->delete();
 
+            Cache::forget('posts_trending');
+
             return response()->json([
                 'message' => 'Unliked successfully',
                 'is_liked' => false,
@@ -80,6 +83,8 @@ class LikeController extends Controller
 
             // Trigger Notification
             NotificationService::send($target->user_id, 'like', $targetId, $targetType, $userId);
+
+            Cache::forget('posts_trending');
 
             return response()->json([
                 'message' => 'Liked successfully',

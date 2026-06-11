@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 
 class ProfileController extends Controller
@@ -107,9 +108,11 @@ class ProfileController extends Controller
      */
     public function leaderboard()
     {
-        $users = User::orderBy('reputation_points', 'desc')
-            ->limit(10)
-            ->get(['id', 'username', 'avatar_url', 'reputation_points', 'level']);
+        $users = Cache::remember('leaderboard', now()->addHour(), function () {
+            return User::orderBy('reputation_points', 'desc')
+                ->limit(10)
+                ->get(['id', 'username', 'avatar_url', 'reputation_points', 'level']);
+        });
 
         return response()->json($users);
     }

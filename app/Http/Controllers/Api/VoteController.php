@@ -8,6 +8,7 @@ use App\Services\NotificationService;
 use App\Services\ReputationService;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
@@ -146,6 +147,8 @@ class VoteController extends Controller
 
                 $message = 'Voted '.$voteType.' successfully';
             }
+
+            Cache::forget('posts_trending');
 
             DB::commit();
 

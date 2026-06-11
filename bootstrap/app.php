@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CheckBannedUser;
+use App\Http\Middleware\AppRateLimiter; // <-- Tambahkan import ini di atas
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -17,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'check.banned' => CheckBannedUser::class,
             'moderator' => \App\Http\Middleware\EnsureUserIsModerator::class,
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'production.limit' => AppRateLimiter::class, // <-- Tambahkan baris ini, bro!
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Tag;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 use OpenApi\Attributes as OA;
 
@@ -20,7 +21,9 @@ class TagController extends Controller
     )]
     public function __invoke(Request $request)
     {
-        $tags = Tag::all();
+        $tags = Cache::remember('tags_list', now()->addDay(), function () {
+            return Tag::all();
+        });
 
         return response()->json($tags);
     }

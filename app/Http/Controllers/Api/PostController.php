@@ -8,6 +8,7 @@ use App\Models\PostEditHistory;
 use App\Models\Tag;
 use App\Services\ReputationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -28,40 +29,45 @@ class PostController extends Controller
     )]
     public function index(Request $request)
     {
-        // Query dasar dengan relasi user, kategori, dan tag
-        $query = Post::with(['user:id,username,avatar_url', 'category:id,name', 'tags:id,name'])
-            ->withCount(['likes', 'bookmarks']);
+        // Generate a unique cache key based on all request parameters
+        $cacheKey = 'posts_index_'.md5(serialize($request->all()));
 
-        // Filter berdasarkan kategori
-        if ($request->has('category_id')) {
-            $query->where('category_id', $request->category_id);
-        }
+        $posts = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($request) {
+            // Query dasar dengan relasi user, kategori, dan tag
+            $query = Post::with(['user:id,username,avatar_url', 'category:id,name', 'tags:id,name'])
+                ->withCount(['likes', 'bookmarks']);
 
-        // Filter berdasarkan tag
-        if ($request->has('tag')) {
-            $query->whereHas('tags', function ($q) use ($request) {
-                $q->where('name', $request->tag)->orWhere('slug', $request->tag);
-            });
-        }
+            // Filter berdasarkan kategori
+            if ($request->has('category_id')) {
+                $query->where('category_id', $request->category_id);
+            }
 
-        // Filter berdasarkan user (ID atau username)
-        if ($request->has('user_id')) {
-            $query->where('user_id', $request->user_id);
-        }
+            // Filter berdasarkan tag
+            if ($request->has('tag')) {
+                $query->whereHas('tags', function ($q) use ($request) {
+                    $q->where('name', $request->tag)->orWhere('slug', $request->tag);
+                });
+            }
 
-        if ($request->has('username')) {
-            $query->whereHas('user', function ($q) use ($request) {
-                $q->where('username', $request->username);
-            });
-        }
+            // Filter berdasarkan user (ID atau username)
+            if ($request->has('user_id')) {
+                $query->where('user_id', $request->user_id);
+            }
 
-        // Fitur pencarian berdasarkan judul
-        if ($request->has('search')) {
-            $query->where('title', 'like', '%'.$request->search.'%');
-        }
+            if ($request->has('username')) {
+                $query->whereHas('user', function ($q) use ($request) {
+                    $q->where('username', $request->username);
+                });
+            }
 
-        // Urutkan dari yang terbaru dan gunakan pagination
-        $posts = $query->latest()->paginate($request->get('per_page', 10));
+            // Fitur pencarian berdasarkan judul
+            if ($request->has('search')) {
+                $query->where('title', 'like', '%'.$request->search.'%');
+            }
+
+            // Urutkan dari yang terbaru dan gunakan pagination
+            return $query->latest()->paginate($request->get('per_page', 10));
+        });
 
         return response()->json($posts);
     }
@@ -133,6 +139,11 @@ class PostController extends Controller
 
             // Cek apakah user berhak mendapatkan badge berdasarkan jumlah postingan
             ReputationService::checkActivityBadges(auth()->user(), 'posts_count');
+
+            Cache::forget('posts_trending');
+            if ($request->has('tags')) {
+                Cache::forget('tags_list');
+            }
 
             DB::commit();
 
@@ -241,6 +252,11 @@ class PostController extends Controller
                 $post->tags()->sync($tagIds);
             }
 
+            Cache::forget('posts_trending');
+            if ($request->has('tags')) {
+                Cache::forget('tags_list');
+            }
+
             DB::commit();
 
             return response()->json([
@@ -293,6 +309,8 @@ class PostController extends Controller
 
         $post->delete();
 
+        Cache::forget('posts_trending');
+
         return response()->json(['message' => 'Post deleted successfully']);
     }
 
@@ -320,11 +338,13 @@ class PostController extends Controller
      */
     public function trending()
     {
-        $posts = Post::with(['user:id,username,avatar_url', 'category:id,name', 'tags:id,name'])
-            ->withCount(['likes', 'bookmarks', 'comments'])
-            ->orderByRaw('(view_count + (vote_score * 2) + (comments_count * 5)) DESC')
-            ->limit(5)
-            ->get();
+        $posts = Cache::remember('posts_trending', now()->addMinutes(30), function () {
+            return Post::with(['user:id,username,avatar_url', 'category:id,name', 'tags:id,name'])
+                ->withCount(['likes', 'bookmarks', 'comments'])
+                ->orderByRaw('(view_count + (vote_score * 2) + (comments_count * 5)) DESC')
+                ->limit(5)
+                ->get();
+        });
 
         return response()->json($posts);
     }

@@ -9,6 +9,7 @@ use App\Models\Post;
 use App\Services\NotificationService;
 use App\Services\ReputationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -114,6 +115,8 @@ class CommentController extends Controller
             $post = Post::find($request->post_id);
             NotificationService::send($post->user_id, 'reply', $comment->id, 'comment', auth()->id());
         }
+
+        Cache::forget('posts_trending');
 
         return response()->json([
             'message' => 'Comment added successfully',
@@ -226,6 +229,8 @@ class CommentController extends Controller
         }
 
         $comment->delete();
+
+        Cache::forget('posts_trending');
 
         return response()->json(['message' => 'Comment deleted successfully']);
     }

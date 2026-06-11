@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 use OpenApi\Attributes as OA;
 
@@ -20,7 +21,10 @@ class CategoryController extends Controller
     )]
     public function index()
     {
-        $categories = Category::with('children')->whereNull('parent_id')->get();
+        $categories = Cache::remember('categories_list', now()->addDay(), function () {
+            return Category::with('children')->whereNull('parent_id')->get();
+        });
+
         return response()->json($categories);
     }
 
@@ -34,6 +38,8 @@ class CategoryController extends Controller
         ]);
 
         $category = Category::create($request->all());
+
+        Cache::forget('categories_list');
 
         return response()->json($category, 201);
     }
@@ -51,6 +57,8 @@ class CategoryController extends Controller
 
         $category->update($request->all());
 
+        Cache::forget('categories_list');
+
         return response()->json($category);
     }
 
@@ -63,6 +71,8 @@ class CategoryController extends Controller
         // But for posts, we might want to prevent deletion or reassign them.
         
         $category->delete();
+
+        Cache::forget('categories_list');
 
         return response()->json(null, 204);
     }
