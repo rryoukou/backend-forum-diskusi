@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Gate;
 
 use OpenApi\Attributes as OA;
 
@@ -204,10 +205,7 @@ class PostController extends Controller
             return response()->json(['message' => 'Post not found'], 404);
         }
 
-        // Pastikan hanya pemilik postingan yang bisa mengedit
-        if ($post->user_id !== auth()->id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        Gate::authorize('update', $post);
 
         $validator = Validator::make($request->all(), [
             'category_id' => 'exists:categories,id',
@@ -289,12 +287,9 @@ class PostController extends Controller
             return response()->json(['message' => 'Post not found'], 404);
         }
 
-        $user = auth()->user();
+        Gate::authorize('delete', $post);
 
-        // Cek kepemilikan atau role moderator/admin
-        if ($post->user_id !== $user->id && ! $user->isModerator()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $user = auth()->user();
 
         // Jika dihapus oleh moderator/admin (bukan pemilik), catat di log moderasi
         if ($post->user_id !== $user->id) {

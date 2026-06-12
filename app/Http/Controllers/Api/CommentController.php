@@ -10,6 +10,7 @@ use App\Services\NotificationService;
 use App\Services\ReputationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -156,9 +157,7 @@ class CommentController extends Controller
             return response()->json(['message' => 'Comment not found'], 404);
         }
 
-        if ($comment->user_id !== auth()->id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        Gate::authorize('update', $comment);
 
         $validator = Validator::make($request->all(), [
             'body' => 'required|string',
@@ -211,11 +210,9 @@ class CommentController extends Controller
             return response()->json(['message' => 'Comment not found'], 404);
         }
 
-        $user = auth()->user();
+        Gate::authorize('delete', $comment);
 
-        if ($comment->user_id !== $user->id && ! $user->isModerator()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $user = auth()->user();
 
         // Jika dihapus oleh moderator/admin (bukan pemilik), catat di log moderasi
         if ($comment->user_id !== $user->id) {
@@ -257,12 +254,9 @@ class CommentController extends Controller
             return response()->json(['message' => 'Comment not found'], 404);
         }
 
-        $post = $comment->post;
+        Gate::authorize('accept', $comment);
 
-        // Only post author can accept an answer
-        if ($post->user_id !== auth()->id()) {
-            return response()->json(['message' => 'Only the post author can accept an answer'], 403);
-        }
+        $post = $comment->post;
 
         // Update all comments for this post to not accepted
         Comment::where('post_id', $post->id)->update(['is_accepted' => false]);

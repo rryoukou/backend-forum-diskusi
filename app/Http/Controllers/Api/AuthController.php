@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 
 use OpenApi\Attributes as OA;
 
@@ -48,7 +50,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'username' => 'required|string|max:100|unique:users',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', 'confirmed', Password::min(8)->letters()->numbers()->mixedCase()],
         ]);
 
         if ($validator->fails()) {
@@ -113,6 +115,12 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password_hash)) {
+            Log::warning('Failed login attempt', [
+                'email' => $request->email,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
             return response()->json([
                 'message' => 'Invalid login details',
             ], 401);
