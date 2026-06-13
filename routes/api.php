@@ -102,6 +102,7 @@ Route::middleware([ChallengeApiCache::class, 'production.limit'])->group(functio
          * --- Rute Khusus Administrator ---
          */
         Route::middleware('admin')->group(function () {
+            Route::get('/admin/stats', [\App\Http\Controllers\Api\AdminDashboardController::class, 'stats']);
             Route::get('/admin/users', [\App\Http\Controllers\Api\UserController::class, 'index']);
             Route::post('/admin/users/{id}/roles', [\App\Http\Controllers\Api\UserController::class, 'updateRole']);
 

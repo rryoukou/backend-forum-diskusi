@@ -223,16 +223,20 @@ class PostController extends Controller
         try {
             DB::beginTransaction();
 
+            $oldTitle = $post->title;
             $oldBody = $post->body;
             $post->update($request->only(['category_id', 'title', 'body', 'status']));
 
-            // Simpan riwayat edit jika konten body berubah
-            if ($request->has('body') && $request->body !== $oldBody) {
+            // Simpan riwayat edit jika konten title atau body berubah
+            if (($request->has('title') && $request->title !== $oldTitle) || 
+                ($request->has('body') && $request->body !== $oldBody)) {
                 PostEditHistory::create([
                     'post_id' => $post->id,
                     'edited_by' => auth()->id(),
-                    'body_before' => $oldBody,
-                    'body_after' => $request->body,
+                    'title_before' => $request->has('title') && $request->title !== $oldTitle ? $oldTitle : null,
+                    'title_after' => $request->has('title') && $request->title !== $oldTitle ? $request->title : null,
+                    'body_before' => $request->has('body') && $request->body !== $oldBody ? $oldBody : null,
+                    'body_after' => $request->has('body') && $request->body !== $oldBody ? $request->body : null,
                     'reason' => $request->get('edit_reason'),
                 ]);
             }

@@ -17,6 +17,8 @@ class PostEditHistory extends Model
     protected $fillable = [
         'post_id',
         'edited_by',
+        'title_before',
+        'title_after',
         'body_before',
         'body_after',
         'reason',

@@ -97,6 +97,16 @@ class CommentController extends Controller
             if ($parent->post_id !== $request->post_id) {
                 return response()->json(['message' => 'Parent comment must belong to the same post'], 422);
             }
+
+            // RESTRICTION: Only one reply allowed per top-level comment
+            if ($parent->parent_id !== null) {
+                return response()->json(['message' => 'Nested replies are not allowed'], 422);
+            }
+
+            $hasReply = Comment::where('parent_id', $request->parent_id)->exists();
+            if ($hasReply) {
+                return response()->json(['message' => 'This comment already has a reply. Only one reply is allowed.'], 422);
+            }
         }
 
         $comment = Comment::create([

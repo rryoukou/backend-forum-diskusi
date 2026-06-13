@@ -58,6 +58,27 @@ class BadgeController extends Controller
             ->latest('created_at')
             ->paginate(20);
 
+        $history->getCollection()->transform(function ($log) {
+            if ($log->reference_id) {
+                if (str_contains($log->action_type, 'post')) {
+                    $post = \App\Models\Post::find($log->reference_id);
+                    if ($post) {
+                        $log->reference_title = $post->title;
+                        $log->reference_type = 'post';
+                        $log->reference_link_id = $post->id;
+                    }
+                } elseif (str_contains($log->action_type, 'comment') || str_contains($log->action_type, 'answer')) {
+                    $comment = \App\Models\Comment::find($log->reference_id);
+                    if ($comment) {
+                        $log->reference_title = \Illuminate\Support\Str::limit($comment->body, 50);
+                        $log->reference_type = 'comment';
+                        $log->reference_link_id = $comment->post_id;
+                    }
+                }
+            }
+            return $log;
+        });
+
         return response()->json($history);
     }
 }

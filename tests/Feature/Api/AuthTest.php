@@ -7,11 +7,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 test('user can register', function () {
+    // Password diubah jadi 'Password123' agar lolos aturan mixedCase bawaan AuthController
     $response = $this->postJson('/api/register', [
         'username' => 'testuser',
         'email' => 'test@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'Password123',
+        'password_confirmation' => 'Password123',
     ]);
 
     $response->assertStatus(200)
@@ -31,12 +32,12 @@ test('user can login', function () {
     $user = User::create([
         'username' => 'testuser',
         'email' => 'test@example.com',
-        'password_hash' => Hash::make('password123'),
+        'password_hash' => Hash::make('Password123'),
     ]);
 
     $response = $this->postJson('/api/login', [
         'email' => 'test@example.com',
-        'password' => 'password123',
+        'password' => 'Password123',
     ]);
 
     $response->assertStatus(200)
@@ -52,13 +53,13 @@ test('banned user cannot login', function () {
     $user = User::create([
         'username' => 'banneduser',
         'email' => 'banned@example.com',
-        'password_hash' => Hash::make('password123'),
+        'password_hash' => Hash::make('Password123'),
         'is_banned' => true,
     ]);
 
     $response = $this->postJson('/api/login', [
         'email' => 'banned@example.com',
-        'password' => 'password123',
+        'password' => 'Password123',
     ]);
 
     $response->assertStatus(403)
@@ -69,7 +70,7 @@ test('authenticated user can get their profile', function () {
     $user = User::create([
         'username' => 'testuser',
         'email' => 'test@example.com',
-        'password_hash' => Hash::make('password123'),
+        'password_hash' => Hash::make('Password123'),
     ]);
 
     $response = $this->actingAs($user)
@@ -83,7 +84,7 @@ test('authenticated user can logout', function () {
     $user = User::create([
         'username' => 'testuser',
         'email' => 'test@example.com',
-        'password_hash' => Hash::make('password123'),
+        'password_hash' => Hash::make('Password123'),
     ]);
 
     $token = $user->createToken('test-token')->plainTextToken;
