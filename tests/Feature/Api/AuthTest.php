@@ -63,7 +63,10 @@ test('banned user cannot login', function () {
     ]);
 
     $response->assertStatus(403)
-        ->assertJson(['message' => 'Your account has been banned.']);
+        ->assertJson([
+            'message' => 'Your account has been banned. Reason: Violating community guidelines',
+            'ban_reason' => 'Violating community guidelines',
+        ]);
 });
 
 test('authenticated user can get their profile', function () {

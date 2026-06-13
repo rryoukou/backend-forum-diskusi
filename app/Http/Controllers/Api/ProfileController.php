@@ -24,6 +24,18 @@ class ProfileController extends Controller
             return response()->json(['message' => 'User not found'], 404);
         }
 
+        // If user is banned, fetch the latest ban reason
+        if ($user->is_banned) {
+            $latestBan = $user->moderationLogs()
+                ->where('action_type', 'ban')
+                ->latest('id')
+                ->first();
+            
+            if ($latestBan) {
+                $user->ban_reason = $latestBan->reason;
+            }
+        }
+
         return response()->json($user);
     }
 

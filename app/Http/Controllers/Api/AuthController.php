@@ -127,8 +127,16 @@ class AuthController extends Controller
         }
 
         if ($user->is_banned) {
+            $latestBan = $user->moderationLogs()
+                ->where('action_type', 'ban')
+                ->latest('id')
+                ->first();
+            
+            $reason = $latestBan ? $latestBan->reason : 'Violating community guidelines';
+
             return response()->json([
-                'message' => 'Your account has been banned.',
+                'message' => "Your account has been banned. Reason: {$reason}",
+                'ban_reason' => $reason,
             ], 403);
         }
 
