@@ -12,20 +12,31 @@ class ChallengeApiCache
     public function handle(Request $request, Closure $next): Response
     {
         // Hanya cache request berupa GET (karena GET itu mengambil data)
-        if ($request->isMethod('GET')) {
+        // Dan jangan cache jika ada header Authorization (biar data user-specific aman)
+        if ($request->isMethod('GET') && !$request->hasHeader('Authorization')) {
             
             // Bikin nama key cache unik berdasarkan URL + Query String (misal: /api/posts?page=2)
             $cacheKey = 'api_cache_' . md5($request->fullUrl());
 
-            // Jika cache ada, langsung return. Jika tidak, jalankan controller dan simpan hasilnya (durasi: 10 menit)
-            return Cache::remember($cacheKey, 600, function () use ($request, $next) {
-                return $next($request);
-            });
+            // Jika cache ada, langsung return (Tapi pastikan bukan hasil error sebelumnya)
+            if (Cache::has($cacheKey)) {
+                return Cache::get($cacheKey);
+            }
+
+            // Jalankan request ke arah controller
+            $response = $next($request);
+
+            // HANYA simpan ke cache jika request BERHASIL (Status 200-299)
+            // Ini krusial: jangan sampai error 401/404/500 ter-cache!
+            if ($response->isSuccessful()) {
+                Cache::put($cacheKey, $response, 600);
+            }
+
+            return $response;
         }
 
         // Jika method POST/PUT/DELETE, otomatis bersihkan semua cache API (biar data ter-refresh)
         if (in_array($request->method(), ['POST', 'PUT', 'DELETE'])) {
-            // Catatan: Jika menggunakan cache driver 'file', kita clear secara global
             Cache::flush(); 
         }
 
